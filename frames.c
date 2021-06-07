@@ -5,7 +5,7 @@ Avanish Kumar Singh
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>
+// #include <time.h>
 
 #define INT_MAX 2147483647
 
@@ -383,38 +383,77 @@ void lru_policy(pfe* physical_memory, pte *page_table, int no_of_frames, int no_
 
 void clock_policy(pfe* physical_memory, pte *page_table, int no_of_frames, int no_of_pages, long int *list_of_memory_accesses, int *list_of_access_type, int no_of_memory_accesses, int verbose)
 {
-    printf("Clock\n");
-    int isFilled = 0, i = 0;
+    // printf("Clock\n");
+    int isFilled = 0;
     int no_of_misses = 0, no_of_drops = 0, no_of_writes = 0;
-    for(; i < no_of_memory_accesses; i++)
+    int *list_of_use_bit = malloc(no_of_frames * sizeof(int));
+    memset(list_of_use_bit, 0, no_of_frames * sizeof(int));
+    int clock_hand_at = 0;
+    for(int i = 0; i < no_of_memory_accesses; i++)
     {
         int accessed_virtual_page_number = list_of_memory_accesses[i] >> 12;
         accessed_virtual_page_number--;
         int access_type = list_of_access_type[i];
         if(page_table[accessed_virtual_page_number].valid_bit == 1 && access_type == 0)
-            continue;
-        if(page_table[accessed_virtual_page_number].valid_bit == 1 && access_type == 1)
         {
+            list_of_use_bit[page_table[accessed_virtual_page_number].physical_frame_number] = 1;
+            continue;
+        }
+        else if(page_table[accessed_virtual_page_number].valid_bit == 1 && access_type == 1)
+        {
+            list_of_use_bit[page_table[accessed_virtual_page_number].physical_frame_number] = 1;
             page_table[accessed_virtual_page_number].dirty_bit = 1;
             continue;
         }
-        no_of_misses++;
-        page_table[accessed_virtual_page_number].valid_bit = 1;
-        if(access_type == 1)
-            page_table[accessed_virtual_page_number].dirty_bit = 1;
-        else
-            page_table[accessed_virtual_page_number].dirty_bit = 0;
-        if(isFilled != no_of_frames)
-        {
-            page_table[accessed_virtual_page_number].physical_frame_number = isFilled;
-            physical_memory[isFilled].virtual_page_number = accessed_virtual_page_number;
-            isFilled++;
-        }
         else
         {
-
+            no_of_misses++;
+            if(isFilled < no_of_frames)
+            {
+                page_table[accessed_virtual_page_number].physical_frame_number = isFilled;
+                list_of_use_bit[page_table[accessed_virtual_page_number].physical_frame_number] = 1;
+                page_table[accessed_virtual_page_number].valid_bit = 1;
+                if(access_type == 1)
+                    page_table[accessed_virtual_page_number].dirty_bit = 1;
+                else
+                    page_table[accessed_virtual_page_number].dirty_bit = 0;
+                physical_memory[isFilled].virtual_page_number = accessed_virtual_page_number;
+                isFilled++;
+            }
+            else
+            {
+                int replace_frame = -1;
+                while(list_of_use_bit[clock_hand_at] == 1)
+                {
+                    list_of_use_bit[clock_hand_at] = 0;
+                    clock_hand_at++;
+                    clock_hand_at = clock_hand_at % no_of_frames;
+                }
+                replace_frame = clock_hand_at;
+                list_of_use_bit[clock_hand_at] = 1;
+                clock_hand_at++;
+                clock_hand_at = clock_hand_at % no_of_frames;
+                int replaced_virtual_page_number = physical_memory[replace_frame].virtual_page_number;
+                if(page_table[replaced_virtual_page_number].dirty_bit == 0)
+                    no_of_drops++;
+                else
+                    no_of_writes++;
+                // printf("%d\n", i);
+                if(verbose == 1)
+                    print_verbose((accessed_virtual_page_number + 1), (replaced_virtual_page_number + 1), page_table[replaced_virtual_page_number].dirty_bit);
+                physical_memory[replace_frame].virtual_page_number = accessed_virtual_page_number;
+                page_table[accessed_virtual_page_number].physical_frame_number = replace_frame;
+                page_table[accessed_virtual_page_number].valid_bit = 1;
+                if(access_type == 1)
+                    page_table[accessed_virtual_page_number].dirty_bit = 1;
+                else
+                    page_table[accessed_virtual_page_number].dirty_bit = 0;
+                page_table[replaced_virtual_page_number].valid_bit = 0;
+                page_table[replaced_virtual_page_number].dirty_bit = 0;
+            }
         }
     }
+    print_results(no_of_memory_accesses, no_of_misses, no_of_writes, no_of_drops);
     // printf("%d\n", isFilled);
     // for(int i = 0; i < no_of_pages; i++)
     // {
@@ -429,7 +468,7 @@ void clock_policy(pfe* physical_memory, pte *page_table, int no_of_frames, int n
 
 int main(int argc, char *argv[])
 {
-    clock_t tic = clock();
+    // clock_t tic = clock();
     int no_of_memory_accesses = 0;
 
     // printf("Argument count: %d\nArgument Vector: \n", argc);
@@ -564,7 +603,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    clock_t toc = clock();
-    printf("Elapsed: %f seconds\n", (double)(toc - tic) / CLOCKS_PER_SEC);
+    // clock_t toc = clock();
+    // printf("Elapsed: %f seconds\n", (double)(toc - tic) / CLOCKS_PER_SEC);
     exit(EXIT_SUCCESS);
 }
