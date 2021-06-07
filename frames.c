@@ -300,38 +300,75 @@ void random_policy(pfe* physical_memory, pte *page_table, int no_of_frames, int 
 
 void lru_policy(pfe* physical_memory, pte *page_table, int no_of_frames, int no_of_pages, long int *list_of_memory_accesses, int *list_of_access_type, int no_of_memory_accesses, int verbose)
 {
-    printf("LRU\n");
-    int isFilled = 0, i = 0;
+    // printf("LRU\n");
+    int isFilled = 0;
     int no_of_misses = 0, no_of_drops = 0, no_of_writes = 0;
-    for(; i < no_of_memory_accesses; i++)
+    int *list_of_use_index = malloc(no_of_frames * sizeof(int));
+    memset(list_of_use_index, -1, no_of_frames * sizeof(int));
+    for(int i = 0; i < no_of_memory_accesses; i++)
     {
         int accessed_virtual_page_number = list_of_memory_accesses[i] >> 12;
         accessed_virtual_page_number--;
         int access_type = list_of_access_type[i];
         if(page_table[accessed_virtual_page_number].valid_bit == 1 && access_type == 0)
-            continue;
-        if(page_table[accessed_virtual_page_number].valid_bit == 1 && access_type == 1)
         {
+            list_of_use_index[page_table[accessed_virtual_page_number].physical_frame_number] = i;
+            continue;
+        }
+        else if(page_table[accessed_virtual_page_number].valid_bit == 1 && access_type == 1)
+        {
+            list_of_use_index[page_table[accessed_virtual_page_number].physical_frame_number] = i;
             page_table[accessed_virtual_page_number].dirty_bit = 1;
             continue;
         }
-        no_of_misses++;
-        page_table[accessed_virtual_page_number].valid_bit = 1;
-        if(access_type == 1)
-            page_table[accessed_virtual_page_number].dirty_bit = 1;
-        else
-            page_table[accessed_virtual_page_number].dirty_bit = 0;
-        if(isFilled != no_of_frames)
-        {
-            page_table[accessed_virtual_page_number].physical_frame_number = isFilled;
-            physical_memory[isFilled].virtual_page_number = accessed_virtual_page_number;
-            isFilled++;
-        }
         else
         {
-
+            no_of_misses++;
+            if(isFilled < no_of_frames)
+            {
+                page_table[accessed_virtual_page_number].physical_frame_number = isFilled;
+                list_of_use_index[page_table[accessed_virtual_page_number].physical_frame_number] = i;
+                page_table[accessed_virtual_page_number].valid_bit = 1;
+                if(access_type == 1)
+                    page_table[accessed_virtual_page_number].dirty_bit = 1;
+                else
+                    page_table[accessed_virtual_page_number].dirty_bit = 0;
+                physical_memory[isFilled].virtual_page_number = accessed_virtual_page_number;
+                isFilled++;
+            }
+            else
+            {
+                int replace_frame = -1, least_index = INT_MAX;
+                for(int j = 0; j < no_of_frames; j++)
+                {
+                    if(list_of_use_index[j] < least_index)
+                    {
+                        replace_frame = j;
+                        least_index = list_of_use_index[j];
+                    }
+                }
+                int replaced_virtual_page_number = physical_memory[replace_frame].virtual_page_number;
+                if(page_table[replaced_virtual_page_number].dirty_bit == 0)
+                    no_of_drops++;
+                else
+                    no_of_writes++;
+                // printf("%d\n", i);
+                if(verbose == 1)
+                    print_verbose((accessed_virtual_page_number + 1), (replaced_virtual_page_number + 1), page_table[replaced_virtual_page_number].dirty_bit);
+                physical_memory[replace_frame].virtual_page_number = accessed_virtual_page_number;
+                page_table[accessed_virtual_page_number].physical_frame_number = replace_frame;
+                page_table[accessed_virtual_page_number].valid_bit = 1;
+                if(access_type == 1)
+                    page_table[accessed_virtual_page_number].dirty_bit = 1;
+                else
+                    page_table[accessed_virtual_page_number].dirty_bit = 0;
+                page_table[replaced_virtual_page_number].valid_bit = 0;
+                page_table[replaced_virtual_page_number].dirty_bit = 0;
+                list_of_use_index[page_table[accessed_virtual_page_number].physical_frame_number] = i;
+            }
         }
     }
+    print_results(no_of_memory_accesses, no_of_misses, no_of_writes, no_of_drops);
     // printf("%d\n", isFilled);
     // for(int i = 0; i < no_of_pages; i++)
     // {
