@@ -4,7 +4,7 @@ Here, I have simulated a page table. Given a sequence of memory accesses and whe
 ## Details:
 1. I have implemented 5 strategies, Optimal Page Replacement (OPT) policy, First In First Out (FIFO) replacement policy, Least Recently Used (LRU) replacement policy, Approximating LRU using clock algorithm (ClOCK), and Random page (RANDOM) replacement policy given in Operating Systems: Three Easy Pieces.
 
-2. The program takes input a trace file, an integer denoting the number of frames available, and a string which would denote the strategy. Example command ./foo trace.in 100 OPT.
+2. The program takes input a trace file, an integer denoting the number of frames available, and a string which would denote the strategy. Example command: ./foo trace.in 100 OPT.
 
 3. The trace file is a list of virtual memory addresses followed by letter R or W, denoting type of memory access(read or write).
 
@@ -18,4 +18,4 @@ Here, I have simulated a page table. Given a sequence of memory accesses and whe
 
 8. For RANDOM the seed has been set to 5635.
 
-9. In addition to the above, there is a verbose option to see which page has been brought in and which page has been dropped/written.
+9. In addition to the above, there is a verbose option to see which page has been brought in and which page has been dropped/written. Example command ./foo trace.in 100 OPT -verbose
