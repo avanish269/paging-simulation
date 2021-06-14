@@ -1,0 +1,5 @@
+__MACOSX
+*.zip
+*.out
+short_trace
+*.in
