@@ -18,4 +18,4 @@ Here, I have simulated a page table. Given a sequence of memory accesses and whe
 
 8. For RANDOM the seed has been set to 5635.
 
-9. In addition to the above, there is a verbose option to see which page has been brought in and which page has been dropped/written. Example command ./foo trace.in 100 OPT -verbose
+9. In addition to the above, there is a verbose option to see which page has been brought in and which page has been dropped/written. Example command: ./foo trace.in 100 OPT -verbose
